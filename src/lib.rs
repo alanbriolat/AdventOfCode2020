@@ -1,7 +1,7 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+#[macro_use]
+pub mod util;
+
+pub mod error;
+pub use error::{Error, Result};
+pub mod runner;
+pub mod solutions;
