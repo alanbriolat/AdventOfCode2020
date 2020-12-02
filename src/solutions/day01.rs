@@ -6,10 +6,11 @@ fn read_input(input_path: PathBuf) -> crate::Result<Vec<i64>> {
     let file = File::open(input_path)?;
     let reader = io::BufReader::new(file);
     // TODO: better error handling
-    let data = reader
+    let mut data: Vec<_> = reader
         .lines()
         .map(|line| line.unwrap().parse::<i64>().unwrap())
         .collect();
+    data.sort();
     Ok(data)
 }
 
