@@ -38,27 +38,14 @@ impl Runner {
         self.solutions.keys().cloned()
     }
 
-    pub fn run_all(&self) {
-        for name in self.list() {
-            self.run(name);
-        }
+    pub fn run_all(&self) -> impl Iterator<Item = (&str, SolutionResult)> {
+        self.solutions.iter().map(|(&name, solution)| (name, solution.run()))
     }
 
-    pub fn run(&self, name: &str) {
+    pub fn run(&self, name: &str) -> SolutionResult {
         match self.solutions.get(&name) {
-            Some(solution) => {
-                match solution.run() {
-                    Ok(result) => {
-                        println!("{}: {}", name, result);
-                    }
-                    Err(err) => {
-                        println!("ERROR: {}: {}", name, err);
-                    }
-                }
-            }
-            None => {
-                panic!("no solution {:?}", name);
-            }
+            Some(solution) => solution.run(),
+            None => panic!("no solution {:?}", name),
         }
     }
 }
