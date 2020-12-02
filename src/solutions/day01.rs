@@ -49,3 +49,18 @@ pub fn register(runner: &mut crate::Runner) {
     runner.add("day01part1", || part1(data_path!("day01_input.txt")));
     runner.add("day01part2", || part2(data_path!("day01_input.txt")));
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_part1_solution() {
+        assert_eq!(part1(data_path!("day01_input.txt")).unwrap(), "357504");
+    }
+
+    #[test]
+    fn test_part2_solution() {
+        assert_eq!(part2(data_path!("day01_input.txt")).unwrap(), "12747392");
+    }
+}
