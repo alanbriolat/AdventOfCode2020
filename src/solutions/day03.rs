@@ -34,14 +34,16 @@ impl Map {
             } else {
                 None
             }
-        }).map(move |p| self.at(p).unwrap())
+        })
+        .map(move |p| self.at(p).unwrap())
     }
 }
 
 fn read_input(input_path: PathBuf) -> crate::Result<Map> {
     let file = File::open(input_path)?;
     let mut width: Option<usize> = None;
-    let data: Vec<Tile> = file.bytes()
+    let data: Vec<Tile> = file
+        .bytes()
         .enumerate()
         .filter_map(|(i, b)| match b.expect("read error") {
             OPEN => Some(Tile::Open),
@@ -58,7 +60,10 @@ fn read_input(input_path: PathBuf) -> crate::Result<Map> {
     let width = width.expect("didn't find a newline");
     let height = data.len() / width;
     let rect = Rect(Vector2D(width, height));
-    Ok(Map { tiles: data, bounds: rect })
+    Ok(Map {
+        tiles: data,
+        bounds: rect,
+    })
 }
 
 fn part1(input_path: PathBuf) -> crate::Result<String> {
@@ -79,10 +84,10 @@ fn part2(input_path: PathBuf) -> crate::Result<String> {
         Vector2D(7, 1),
         Vector2D(1, 2),
     ];
-    let product: usize = slopes.into_iter()
+    let product: usize = slopes
+        .into_iter()
         .map(|slope| {
-            map
-                .traverse(slope)
+            map.traverse(slope)
                 .filter(|t| matches!(t, Tile::Tree))
                 .count()
         })

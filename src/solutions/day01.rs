@@ -67,7 +67,10 @@ fn part2_triangle_index(data: &[i64]) -> Option<i64> {
     None
 }
 
-pub fn part2<F: Fn(&[i64]) -> Option<i64>>(input_path: PathBuf, implementation: F) -> crate::Result<String> {
+pub fn part2<F: Fn(&[i64]) -> Option<i64>>(
+    input_path: PathBuf,
+    implementation: F,
+) -> crate::Result<String> {
     let data = read_input(input_path)?;
     match implementation(data.as_ref()) {
         Some(product) => Ok(product.to_string()),
@@ -77,12 +80,20 @@ pub fn part2<F: Fn(&[i64]) -> Option<i64>>(input_path: PathBuf, implementation: 
 
 pub fn register(runner: &mut crate::Runner) {
     runner.add("day01part1", || part1(data_path!("day01_input.txt")));
-    runner.add("day01part2_naive", || part2(data_path!("day01_input.txt"), part2_naive));
-    runner.add("day01part2_triangle_enumerate", || part2(data_path!("day01_input.txt"), part2_triangle_enumerate));
-    runner.add("day01part2_triangle_index", || part2(data_path!("day01_input.txt"), part2_triangle_index));
+    runner.add("day01part2_naive", || {
+        part2(data_path!("day01_input.txt"), part2_naive)
+    });
+    runner.add("day01part2_triangle_enumerate", || {
+        part2(data_path!("day01_input.txt"), part2_triangle_enumerate)
+    });
+    runner.add("day01part2_triangle_index", || {
+        part2(data_path!("day01_input.txt"), part2_triangle_index)
+    });
     // runner.add("day01part2_sorted_naive", || part2(data_path!("day01_input_sorted.txt"), part2_naive));
     // runner.add("day01part2_sorted_triangle_enumerate", || part2(data_path!("day01_input_sorted.txt"), part2_triangle_enumerate));
-    runner.add("day01part2_sorted_triangle_index", || part2(data_path!("day01_input_sorted.txt"), part2_triangle_index));
+    runner.add("day01part2_sorted_triangle_index", || {
+        part2(data_path!("day01_input_sorted.txt"), part2_triangle_index)
+    });
 }
 
 #[cfg(test)]
@@ -96,8 +107,17 @@ mod tests {
 
     #[test]
     fn test_part2_solution() {
-        assert_eq!(part2(data_path!("day01_input.txt"), part2_naive).unwrap(), "12747392");
-        assert_eq!(part2(data_path!("day01_input.txt"), part2_triangle_enumerate).unwrap(), "12747392");
-        assert_eq!(part2(data_path!("day01_input.txt"), part2_triangle_index).unwrap(), "12747392");
+        assert_eq!(
+            part2(data_path!("day01_input.txt"), part2_naive).unwrap(),
+            "12747392"
+        );
+        assert_eq!(
+            part2(data_path!("day01_input.txt"), part2_triangle_enumerate).unwrap(),
+            "12747392"
+        );
+        assert_eq!(
+            part2(data_path!("day01_input.txt"), part2_triangle_index).unwrap(),
+            "12747392"
+        );
     }
 }

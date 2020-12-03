@@ -39,7 +39,9 @@ impl Runner {
     }
 
     pub fn run_all(&self) -> impl Iterator<Item = (&str, SolutionResult)> {
-        self.solutions.iter().map(|(&name, solution)| (name, solution.run()))
+        self.solutions
+            .iter()
+            .map(|(&name, solution)| (name, solution.run()))
     }
 
     pub fn run(&self, name: &str) -> SolutionResult {

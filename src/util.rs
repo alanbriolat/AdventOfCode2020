@@ -67,7 +67,10 @@ impl<C: Coord> ops::Sub for Vector2D<C> {
 
 impl<C: Coord> num::CheckedSub for Vector2D<C> {
     fn checked_sub(&self, rhs: &Self) -> Option<Self> {
-        Some(Self(self.0.checked_sub(&rhs.0)?, self.1.checked_sub(&rhs.1)?))
+        Some(Self(
+            self.0.checked_sub(&rhs.0)?,
+            self.1.checked_sub(&rhs.1)?,
+        ))
     }
 }
 
