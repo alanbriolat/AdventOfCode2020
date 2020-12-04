@@ -1,4 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+use std::ops::RangeInclusive;
+use std::str::FromStr;
 
 use super::prelude::*;
 use crate::util;
@@ -12,6 +14,69 @@ const REQUIRED_FIELDS: &'static [&'static str] = &[
     // "cid",
 ];
 
+type Validator = fn(&String) -> bool;
+
+fn validate_range<I: FromStr + PartialOrd>(v: &str, range: RangeInclusive<I>) -> bool {
+    match v.parse::<I>() {
+        Ok(year) => range.contains(&year),
+        Err(_) => false,
+    }
+}
+
+fn validate_byr(v: &String) -> bool {
+    validate_range::<u16>(v, 1920..=2002)
+}
+
+fn validate_iyr(v: &String) -> bool {
+    validate_range::<u16>(v, 2010..=2020)
+}
+
+fn validate_eyr(v: &String) -> bool {
+    validate_range::<u16>(v, 2020..=2030)
+}
+
+fn validate_hgt(v: &String) -> bool {
+    let (amount, unit) = v.split_at(v.len() - 2);
+    let range = match unit {
+        "cm" => 150..=193,
+        "in" => 59..=76,
+        _ => return false,
+    };
+    validate_range::<u8>(amount, range)
+}
+
+fn validate_hex_char(b: &u8) -> bool {
+    (b'0'..=b'9').contains(b) || (b'a'..=b'f').contains(b)
+}
+
+fn validate_hcl(v: &String) -> bool {
+    let v = v.as_bytes();
+    v.len() == 7 && v[0] == b'#' && v[1..].iter().all(validate_hex_char)
+}
+
+fn validate_ecl(v: &String) -> bool {
+    match v.as_str() {
+        "amb" | "blu" | "brn" | "gry" | "grn" | "hzl" | "oth" => true,
+        _ => false,
+    }
+}
+
+fn validate_pid(v: &String) -> bool {
+    let v = v.as_bytes();
+    let range = b'0'..=b'9';
+    v.len() == 9 && v.iter().all(|b| range.contains(b))
+}
+
+const VALIDATORS: &'static [(&'static str, Validator)] = &[
+    ("byr", validate_byr as Validator),
+    ("iyr", validate_iyr as Validator),
+    ("eyr", validate_eyr as Validator),
+    ("hgt", validate_hgt as Validator),
+    ("hcl", validate_hcl as Validator),
+    ("ecl", validate_ecl as Validator),
+    ("pid", validate_pid as Validator),
+];
+
 #[derive(Debug)]
 struct Passport {
     data: HashMap<String, String>,
@@ -22,6 +87,15 @@ impl Passport {
         REQUIRED_FIELDS
             .iter()
             .all(|k| self.data.contains_key(k.to_owned()))
+    }
+
+    fn is_valid(&self) -> bool {
+        VALIDATORS
+            .iter()
+            .all(|(field, validator)| match self.data.get(field.to_owned()) {
+                Some(value) => validator(value),
+                None => false,
+            })
     }
 }
 
@@ -63,7 +137,9 @@ fn part1(input_path: PathBuf) -> crate::Result<String> {
 }
 
 fn part2(input_path: PathBuf) -> crate::Result<String> {
-    Err("unimplemented".into())
+    let passports = read_input(input_path)?;
+    let valid_count = passports.iter().filter(|&p| p.is_valid()).count();
+    Ok(valid_count.to_string())
 }
 
 pub fn register(runner: &mut crate::Runner) {
@@ -87,6 +163,6 @@ mod tests {
 
     #[test]
     fn test_part2_solution() {
-        assert_eq!(part2(data_path!("day04input.txt")).unwrap(), "");
+        assert_eq!(part2(data_path!("day04_input.txt")).unwrap(), "109");
     }
 }
