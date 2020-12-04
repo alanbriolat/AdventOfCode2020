@@ -1,7 +1,4 @@
-use std::fs::File;
-use std::io::Read;
-use std::path::PathBuf;
-
+use super::prelude::*;
 use crate::util::{Rect, Vector2D};
 
 const OPEN: u8 = '.' as u8;

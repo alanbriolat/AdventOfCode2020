@@ -1,6 +1,4 @@
-use std::fs::File;
-use std::io::{self, BufRead};
-use std::path::PathBuf;
+use super::prelude::*;
 
 fn read_input(input_path: PathBuf) -> crate::Result<Vec<i64>> {
     let file = File::open(input_path)?;
