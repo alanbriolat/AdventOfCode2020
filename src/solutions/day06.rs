@@ -11,19 +11,23 @@ struct Group(Vec<Person>);
 
 impl Group {
     fn question_union(&self) -> HashSet<Question> {
-        self.0.iter().fold(HashSet::new(), |acc, person| {
-            acc.union(&person.0).cloned().collect()
-        })
+        let mut iter = self.0.iter().map(|p| &p.0);
+        let mut acc = iter.next().cloned().unwrap_or(HashSet::new());
+        for other in iter {
+            for &q in other {
+                acc.insert(q);
+            }
+        }
+        acc
     }
 
     fn question_intersection(&self) -> HashSet<Question> {
         let mut iter = self.0.iter().map(|p| &p.0);
-        match iter.next() {
-            Some(first) => iter.fold(first.clone(), |acc, p| {
-                acc.intersection(p).cloned().collect()
-            }),
-            None => HashSet::new(),
+        let mut acc = iter.next().cloned().unwrap_or(HashSet::new());
+        for other in iter {
+            acc.retain(|q| other.contains(q));
         }
+        acc
     }
 }
 
