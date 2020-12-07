@@ -39,6 +39,13 @@ struct Ruleset {
 }
 
 impl Ruleset {
+    fn dependencies(&self) -> HashMap<&String, HashSet<&String>> {
+        self.rules
+            .iter()
+            .map(|rule| (&rule.outer, rule.inner.keys().collect()))
+            .collect()
+    }
+
     fn reverse_dependencies(&self) -> HashMap<&String, HashSet<&String>> {
         let mut deps: HashMap<&String, HashSet<&String>> = HashMap::new();
         for rule in self.rules.iter() {
@@ -47,6 +54,17 @@ impl Ruleset {
             }
         }
         deps
+    }
+
+    fn counts(&self) -> HashMap<(&String, &String), u8> {
+        self.rules
+            .iter()
+            .flat_map(|rule| {
+                rule.inner.iter().map(move |(inner, &count)| {
+                    ((&rule.outer, inner), count)
+                })
+            })
+            .collect()
     }
 
     /// Find all possible types of bag that might contain `target` at any level of nesting.
@@ -71,6 +89,47 @@ impl Ruleset {
         }
         found
     }
+
+    fn count_contained_bags(&self, target: &String) -> u64 {
+        let deps = self.dependencies();
+        let mut remaining_deps = deps.clone();
+        // TODO: filter dependency tree?
+
+        let mut visited: HashSet<&String> = HashSet::new();
+        let mut ordered: Vec<&String> = Vec::new();
+        while !remaining_deps.is_empty() {
+            let next: Vec<_> = remaining_deps.iter()
+                .filter_map(|(&outer, inners)| {
+                    if inners.is_subset(&visited) {
+                        visited.insert(outer);
+                        ordered.push(outer);
+                        Some(outer)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            for k in next {
+                remaining_deps.remove(k);
+            }
+        }
+
+        let edge_counts = self.counts();
+        let mut counts: HashMap<&String, u64> = HashMap::new();
+        for outer in ordered {
+            let inner_count: u64 = deps[outer]
+                .iter()
+                .map(|&inner| {
+                    counts[inner] * edge_counts[&(outer, inner)] as u64
+                })
+                .sum();
+            // Add 1 to account for the `outer` bag too
+            counts.insert(outer, inner_count + 1);
+        }
+
+        // Subtract 1 because we're looking for the contents of `target`, not including `target`
+        counts.get(target).cloned().unwrap() - 1
+    }
 }
 
 fn read_input(input_path: &PathBuf) -> crate::Result<Ruleset> {
@@ -87,7 +146,9 @@ fn part1(input_path: PathBuf) -> crate::Result<String> {
 }
 
 fn part2(input_path: PathBuf) -> crate::Result<String> {
-    Err("unimplemented".into())
+    let ruleset = read_input(&input_path)?;
+    let result = ruleset.count_contained_bags(&("shiny gold".to_owned()));
+    Ok(result.to_string())
 }
 
 pub fn register(runner: &mut crate::Runner) {
@@ -110,7 +171,12 @@ mod tests {
     }
 
     #[test]
+    fn test_part2_example() {
+        assert_eq!(part2(data_path!("day07_example.txt")).unwrap(), "32");
+    }
+
+    #[test]
     fn test_part2_solution() {
-        assert_eq!(part2(data_path!("day07_input.txt")).unwrap(), "");
+        assert_eq!(part2(data_path!("day07_input.txt")).unwrap(), "18925");
     }
 }
