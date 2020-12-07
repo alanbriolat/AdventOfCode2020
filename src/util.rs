@@ -26,10 +26,23 @@ pub fn read_lines(path: &PathBuf) -> impl Iterator<Item = String> {
     reader.lines().map(Result::unwrap)
 }
 
+/// Split `input` exactly once at `sep`, returning both sides of the split.
+///
+/// If `sep` is not found in `input`, returns `(input, "")`.
 pub fn str_partition<'a>(input: &'a str, sep: &str) -> (&'a str, &'a str) {
     match input.find(sep) {
         Some(pos) => (&input[..pos], &input[(pos + sep.len())..]),
         None => (input, ""),
+    }
+}
+
+/// Like `str_partition` but from the right instead of the left.
+///
+/// If `sep` is not found in `input`, returns `("", input)`.
+pub fn str_rpartition<'a>(input: &'a str, sep: &str) -> (&'a str, &'a str) {
+    match input.rfind(sep) {
+        Some(pos) => (&input[..pos], &input[(pos + sep.len())..]),
+        None => ("", input),
     }
 }
 
@@ -132,5 +145,24 @@ impl<C: Coord> Rect<C> {
         } else {
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_str_partition() {
+        assert_eq!(str_partition("a, b, c, d", ", "), ("a", "b, c, d"));
+        assert_eq!(str_partition("a,b, c, d", ", "), ("a,b", "c, d"));
+        assert_eq!(str_partition("a,b, c, d", " , "), ("a,b, c, d", ""));
+    }
+
+    #[test]
+    fn test_str_rpartition() {
+        assert_eq!(str_rpartition("a, b, c, d", ", "), ("a, b, c", "d"));
+        assert_eq!(str_rpartition("a, b, c,d", ", "), ("a, b", "c,d"));
+        assert_eq!(str_rpartition("a, b, c,d", " , "), ("", "a, b, c,d"));
     }
 }
