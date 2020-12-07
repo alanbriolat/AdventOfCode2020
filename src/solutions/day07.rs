@@ -60,9 +60,9 @@ impl Ruleset {
         self.rules
             .iter()
             .flat_map(|rule| {
-                rule.inner.iter().map(move |(inner, &count)| {
-                    ((&rule.outer, inner), count)
-                })
+                rule.inner
+                    .iter()
+                    .map(move |(inner, &count)| ((&rule.outer, inner), count))
             })
             .collect()
     }
@@ -91,14 +91,27 @@ impl Ruleset {
     }
 
     fn count_contained_bags(&self, target: &String) -> u64 {
-        let deps = self.dependencies();
-        let mut remaining_deps = deps.clone();
-        // TODO: filter dependency tree?
+        let all_deps = self.dependencies();
+
+        let mut filtered_deps: HashMap<&String, HashSet<&String>> = HashMap::new();
+        let mut filter_queue: VecDeque<&String> = VecDeque::from(vec![target]);
+        while let Some(outer) = filter_queue.pop_front() {
+            let inners = all_deps[outer].clone();
+            filter_queue.extend(
+                inners
+                    .iter()
+                    .filter(|&&inner| !filtered_deps.contains_key(inner)),
+            );
+            filtered_deps.insert(outer, inners);
+        }
+
+        let mut remaining_deps = filtered_deps.clone();
 
         let mut visited: HashSet<&String> = HashSet::new();
         let mut ordered: Vec<&String> = Vec::new();
         while !remaining_deps.is_empty() {
-            let next: Vec<_> = remaining_deps.iter()
+            let next: Vec<_> = remaining_deps
+                .iter()
                 .filter_map(|(&outer, inners)| {
                     if inners.is_subset(&visited) {
                         visited.insert(outer);
@@ -117,11 +130,9 @@ impl Ruleset {
         let edge_counts = self.counts();
         let mut counts: HashMap<&String, u64> = HashMap::new();
         for outer in ordered {
-            let inner_count: u64 = deps[outer]
+            let inner_count: u64 = filtered_deps[outer]
                 .iter()
-                .map(|&inner| {
-                    counts[inner] * edge_counts[&(outer, inner)] as u64
-                })
+                .map(|&inner| counts[inner] * edge_counts[&(outer, inner)] as u64)
                 .sum();
             // Add 1 to account for the `outer` bag too
             counts.insert(outer, inner_count + 1);
