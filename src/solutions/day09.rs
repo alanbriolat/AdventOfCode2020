@@ -87,7 +87,7 @@ fn read_input(input_path: &PathBuf) -> crate::Result<Vec<u64>> {
         .map_err(crate::Error::from)
 }
 
-fn part1_impl(data: Vec<u64>, window_size: usize) -> crate::Result<u64> {
+fn part1_impl(data: &[u64], window_size: usize) -> crate::Result<u64> {
     let mut cypher = Cypher::new(&data[..window_size]);
     for next in data[window_size..].iter().cloned() {
         if !cypher.accept(next) {
@@ -99,11 +99,29 @@ fn part1_impl(data: Vec<u64>, window_size: usize) -> crate::Result<u64> {
 
 fn part1(input_path: PathBuf) -> crate::Result<String> {
     let data = read_input(&input_path)?;
-    part1_impl(data, 25).map(|result| result.to_string())
+    part1_impl(&data, 25).map(|result| result.to_string())
+}
+
+fn part2_impl(data: &[u64], window_size: usize) -> crate::Result<u64> {
+    let invalid = part1_impl(data, window_size)?;
+    let (mut start, mut end) = (0_usize, 1_usize);
+    let mut sum = data[start];
+    while sum != invalid {
+        if sum < invalid {
+            sum += data[end];
+            end += 1;
+        } else {
+            sum -= data[start];
+            start += 1;
+        }
+    }
+    let sum_data = &data[start..end];
+    Ok(sum_data.iter().min().unwrap() + sum_data.iter().max().unwrap())
 }
 
 fn part2(input_path: PathBuf) -> crate::Result<String> {
-    Err("unimplemented".into())
+    let data = read_input(&input_path)?;
+    part2_impl(&data, 25).map(|result| result.to_string())
 }
 
 pub fn register(runner: &mut crate::Runner) {
@@ -118,7 +136,7 @@ mod tests {
     #[test]
     fn test_part1_impl_example() {
         let data = read_input(&data_path!("day09_example1.txt")).unwrap();
-        assert_eq!(part1_impl(data, 5).unwrap(), 127);
+        assert_eq!(part1_impl(&data, 5).unwrap(), 127);
     }
 
     #[test]
@@ -127,7 +145,13 @@ mod tests {
     }
 
     #[test]
+    fn test_part2_impl_example() {
+        let data = read_input(&data_path!("day09_example1.txt")).unwrap();
+        assert_eq!(part2_impl(&data, 5).unwrap(), 62);
+    }
+
+    #[test]
     fn test_part2_solution() {
-        assert_eq!(part2(data_path!("day09_input.txt")).unwrap(), "");
+        assert_eq!(part2(data_path!("day09_input.txt")).unwrap(), "16107959");
     }
 }
