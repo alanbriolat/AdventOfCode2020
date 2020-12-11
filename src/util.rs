@@ -146,6 +146,95 @@ impl<C: Coord> Rect<C> {
             None
         }
     }
+
+    pub fn iter_points(&self) -> impl Iterator<Item = Vector2D<C>> {
+        let Vector2D(w, h) = self.size().clone();
+        num::range(C::zero(), h).into_iter().flat_map(move |y| {
+            num::range(C::zero(), w)
+                .into_iter()
+                .map(move |x| Vector2D(x, y))
+        })
+    }
+}
+
+#[derive(Clone)]
+pub struct Grid2D<T> {
+    extent: Rect<i64>,
+    data: Vec<T>,
+}
+
+pub const GRID2D_DIRECTIONS_4: [Vector2D<i64>; 4] = [
+    Vector2D(-1, 0),
+    Vector2D(0, -1),
+    Vector2D(0, 1),
+    Vector2D(1, 0),
+];
+
+pub const GRID2D_DIRECTIONS_8: [Vector2D<i64>; 8] = [
+    Vector2D(-1, -1),
+    Vector2D(-1, 0),
+    Vector2D(-1, 1),
+    Vector2D(0, -1),
+    Vector2D(0, 1),
+    Vector2D(1, -1),
+    Vector2D(1, 0),
+    Vector2D(1, 1),
+];
+
+impl<T> Grid2D<T> {
+    pub fn from_rows(rows: Vec<Vec<T>>) -> crate::Result<Self> {
+        if rows.len() == 0 {
+            return Err("at least one row required".into());
+        }
+        let size = Vector2D(rows[0].len() as i64, rows.len() as i64);
+        let mut data = Vec::with_capacity((size.0 * size.1) as usize);
+        for row in rows {
+            if row.len() != size.0 as usize {
+                return Err("all rows must have same width".into());
+            }
+            data.extend(row);
+        }
+        Ok(Self {
+            extent: Rect(size),
+            data,
+        })
+    }
+
+    pub fn get(&self, point: Vector2D<i64>) -> Option<&T> {
+        self.extent
+            .row_major_index(point)
+            .and_then(move |i| self.data.get(i))
+    }
+
+    pub fn get_mut(&mut self, point: Vector2D<i64>) -> Option<&mut T> {
+        self.extent
+            .row_major_index(point)
+            .and_then(move |i| self.data.get_mut(i))
+    }
+
+    pub fn iter_points(&self) -> impl Iterator<Item = Vector2D<i64>> {
+        self.extent.iter_points()
+    }
+
+    pub fn iter_cells(&self) -> impl Iterator<Item = (Vector2D<i64>, &T)> + '_ {
+        self.iter_points().zip(self.data.iter())
+    }
+
+    pub fn iter_cells_mut(&mut self) -> impl Iterator<Item = (Vector2D<i64>, &mut T)> + '_ {
+        self.iter_points().zip(self.data.iter_mut())
+    }
+
+    pub fn iter_adjacent_4(&self, point: Vector2D<i64>) -> impl Iterator<Item = Option<&T>> + '_ {
+        GRID2D_DIRECTIONS_4
+            .iter()
+            .map(move |offset| self.get(point + *offset))
+    }
+
+    pub fn iter_adjacent_8(&self, point: Vector2D<i64>) -> impl Iterator<Item = Option<&T>> + '_ {
+        GRID2D_DIRECTIONS_8
+            .iter()
+            .map(move |offset| self.get(point + *offset))
+    }
 }
 
 #[cfg(test)]
