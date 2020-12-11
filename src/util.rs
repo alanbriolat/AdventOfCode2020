@@ -216,6 +216,17 @@ impl<T> Grid2D<T> {
         self.extent.iter_points()
     }
 
+    pub fn iter_direction(
+        &self,
+        point: Vector2D<i64>,
+        offset: Vector2D<i64>,
+    ) -> impl Iterator<Item = (Vector2D<i64>, &T)> + '_ {
+        std::iter::successors(Some(point), move |&p| Some(p + offset))
+            .map(move |p| self.get(p).map(|v| (p, v)))
+            .take_while(|v| v.is_some())
+            .flatten()
+    }
+
     pub fn iter_cells(&self) -> impl Iterator<Item = (Vector2D<i64>, &T)> + '_ {
         self.iter_points().zip(self.data.iter())
     }

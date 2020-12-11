@@ -44,6 +44,29 @@ impl Map {
             .filter(|t| matches!(t, Some(Tile::Occupied)))
             .count()
     }
+
+    fn count_visible_occupied(&self, point: Vector2D<i64>) -> usize {
+        // Look in each of the 8 directions
+        util::GRID2D_DIRECTIONS_8
+            .iter()
+            // Find the first seat in this direction
+            .map(|&offset| {
+                // Traverse tiles in this direction
+                self.iter_direction(point, offset)
+                    // First item is `point` itself, so skip it
+                    .skip(1)
+                    // Only look at seats
+                    .filter_map(|(_p, t)| match t {
+                        Tile::Floor => None,
+                        t => Some(t),
+                    })
+                    // Take the first seat (if any)
+                    .next()
+            })
+            // Count directions where the first seat is occupied
+            .filter(|t| matches!(t, Some(Tile::Occupied)))
+            .count()
+    }
 }
 
 fn read_input(input_path: &PathBuf) -> crate::Result<Map> {
@@ -88,7 +111,37 @@ fn part1(input_path: PathBuf) -> crate::Result<String> {
 }
 
 fn part2(input_path: PathBuf) -> crate::Result<String> {
-    Err("unimplemented".into())
+    let mut map = read_input(&input_path)?;
+    loop {
+        let mut new_map = map.clone();
+        let mut changes = 0_usize;
+        for (p, t) in new_map.iter_cells_mut() {
+            match t {
+                Tile::Empty => {
+                    if map.count_visible_occupied(p) == 0 {
+                        *t = Tile::Occupied;
+                        changes += 1;
+                    }
+                }
+                Tile::Occupied => {
+                    if map.count_visible_occupied(p) >= 5 {
+                        *t = Tile::Empty;
+                        changes += 1;
+                    }
+                }
+                _ => {}
+            }
+        }
+        if changes == 0 {
+            break;
+        }
+        map = new_map;
+    }
+    let occupied_count = map
+        .iter_cells()
+        .filter(|(_p, t)| matches!(t, Tile::Occupied))
+        .count();
+    Ok(occupied_count.to_string())
 }
 
 pub fn register(runner: &mut crate::Runner) {
@@ -111,7 +164,12 @@ mod tests {
     }
 
     #[test]
+    fn test_part2_example() {
+        assert_eq!(part2(data_path!("day11_example.txt")).unwrap(), "26");
+    }
+
+    #[test]
     fn test_part2_solution() {
-        assert_eq!(part2(data_path!("day11_input.txt")).unwrap(), "");
+        assert_eq!(part2(data_path!("day11_input.txt")).unwrap(), "2072");
     }
 }
