@@ -62,6 +62,12 @@ impl<C: Coord> Vector2D<C> {
     }
 }
 
+impl<C: Coord + num::Signed> Vector2D<C> {
+    pub fn manhattan_length(&self) -> C {
+        self.0.abs() + self.1.abs()
+    }
+}
+
 impl<C: Coord> ops::Add for Vector2D<C> {
     type Output = Self;
 

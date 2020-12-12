@@ -9,6 +9,7 @@ pub mod day08;
 pub mod day09;
 pub mod day10;
 pub mod day11;
+pub mod day12;
 
 mod prelude;
 
@@ -26,6 +27,7 @@ pub fn build_runner() -> crate::Runner {
     day09::register(&mut runner);
     day10::register(&mut runner);
     day11::register(&mut runner);
+    day12::register(&mut runner);
 
     runner
 }
