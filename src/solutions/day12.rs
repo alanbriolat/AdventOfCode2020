@@ -1,14 +1,25 @@
 use std::str::FromStr;
 
-use num;
-use num_derive::FromPrimitive;
-
 use super::prelude::*;
 use crate::util::{self, Vector2D};
 
-type Position = Vector2D<i64>;
+type Vec2D = Vector2D<i64>;
 
-#[derive(Clone, Copy, Debug, FromPrimitive)]
+fn rotate_vector(v: Vec2D, mut steps: i64) -> Vec2D {
+    steps %= 4;
+    if steps < 0 {
+        steps += 4;
+    }
+    match steps {
+        0 => v,
+        1 => Vector2D(-v.1, v.0),
+        2 => Vector2D(-v.0, -v.1),
+        3 => Vector2D(v.1, -v.0),
+        _ => unimplemented!(),
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 enum Direction {
     North = 0,
     East = 1,
@@ -16,18 +27,8 @@ enum Direction {
     West = 3,
 }
 
-impl Direction {
-    fn rotate(self, amount: i64) -> Self {
-        let mut new = ((self as i64) + amount) % 4;
-        if new < 0 {
-            new += 4;
-        }
-        num::FromPrimitive::from_i64(new).unwrap()
-    }
-}
-
 impl Into<Vector2D<i64>> for Direction {
-    fn into(self) -> Position {
+    fn into(self) -> Vec2D {
         match self {
             Direction::North => Vector2D(0, -1),
             Direction::East => Vector2D(1, 0),
@@ -37,11 +38,13 @@ impl Into<Vector2D<i64>> for Direction {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
 enum Rotation {
     Left,
     Right,
 }
 
+#[derive(Clone, Debug)]
 enum Action {
     Translate(Direction, i64),
     Rotate(Rotation, i64),
@@ -67,40 +70,57 @@ impl FromStr for Action {
     }
 }
 
-struct State {
-    position: Position,
-    facing: Direction,
+#[derive(Debug)]
+struct Ship {
+    position: Vec2D,
+    waypoint: Vec2D,
 }
 
-impl Default for State {
-    fn default() -> Self {
-        State {
+impl Ship {
+    fn new(waypoint: Vec2D) -> Self {
+        Ship {
             position: Vector2D(0, 0),
-            facing: Direction::East,
+            waypoint,
         }
     }
-}
 
-impl State {
-    fn apply(&mut self, action: Action) {
+    fn apply_directly(&mut self, action: Action) {
         match action {
             Action::Translate(direction, value) => {
-                let direction: Position = direction.into();
+                let direction: Vec2D = direction.into();
                 let change = direction * value;
                 self.position = self.position + change;
-            },
+            }
             Action::Rotate(direction, value) => {
                 let multiplier = match direction {
                     Rotation::Left => -1,
                     Rotation::Right => 1,
                 };
-                self.facing = self.facing.rotate((value / 90) * multiplier);
-            },
+                self.waypoint = rotate_vector(self.waypoint, (value / 90) * multiplier);
+            }
             Action::Forward(value) => {
-                let direction: Position = self.facing.into();
+                self.position = self.position + self.waypoint * value;
+            }
+        }
+    }
+
+    fn apply_via_waypoint(&mut self, action: Action) {
+        match action {
+            Action::Translate(direction, value) => {
+                let direction: Vec2D = direction.into();
                 let change = direction * value;
-                self.position = self.position + change;
-            },
+                self.waypoint = self.waypoint + change;
+            }
+            Action::Rotate(direction, value) => {
+                let multiplier = match direction {
+                    Rotation::Left => -1,
+                    Rotation::Right => 1,
+                };
+                self.waypoint = rotate_vector(self.waypoint, (value / 90) * multiplier);
+            }
+            Action::Forward(value) => {
+                self.position = self.position + self.waypoint * value;
+            }
         }
     }
 }
@@ -113,15 +133,20 @@ fn read_input(input_path: &PathBuf) -> crate::Result<Vec<Action>> {
 
 fn part1(input_path: PathBuf) -> crate::Result<String> {
     let actions = read_input(&input_path)?;
-    let mut state = State::default();
+    let mut state = Ship::new(Direction::East.into());
     for action in actions {
-        state.apply(action);
+        state.apply_directly(action);
     }
     Ok(state.position.manhattan_length().to_string())
 }
 
 fn part2(input_path: PathBuf) -> crate::Result<String> {
-    Err("unimplemented".into())
+    let actions = read_input(&input_path)?;
+    let mut state = Ship::new(Vector2D(10, -1));
+    for action in actions {
+        state.apply_via_waypoint(action.clone());
+    }
+    Ok(state.position.manhattan_length().to_string())
 }
 
 pub fn register(runner: &mut crate::Runner) {
@@ -135,16 +160,21 @@ mod tests {
 
     #[test]
     fn test_part1_example() {
-        assert_eq!(part1(data_path!("day12_example.txt")).unwrap(), "");
+        assert_eq!(part1(data_path!("day12_example.txt")).unwrap(), "25");
     }
 
     #[test]
     fn test_part1_solution() {
-        assert_eq!(part1(data_path!("day12_input.txt")).unwrap(), "");
+        assert_eq!(part1(data_path!("day12_input.txt")).unwrap(), "1133");
+    }
+
+    #[test]
+    fn test_part2_example() {
+        assert_eq!(part2(data_path!("day12_example.txt")).unwrap(), "286");
     }
 
     #[test]
     fn test_part2_solution() {
-        assert_eq!(part2(data_path!("day12_input.txt")).unwrap(), "");
+        assert_eq!(part2(data_path!("day12_input.txt")).unwrap(), "61053");
     }
 }
