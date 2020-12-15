@@ -64,7 +64,14 @@ fn part1_impl(seed: &[u64]) -> crate::Result<u64> {
 }
 
 fn part2(input_path: PathBuf) -> crate::Result<String> {
-    Err("unimplemented".into())
+    let seed = read_input(&input_path)?;
+    part2_impl(&seed).map(|x| x.to_string())
+}
+
+fn part2_impl(seed: &[u64]) -> crate::Result<u64> {
+    let mut game = Game::new(seed);
+    game.nth(30_000_000 - seed.len() - 1)
+        .ok_or("no result".into())
 }
 
 pub fn register(runner: &mut crate::Runner) {
@@ -93,7 +100,18 @@ mod tests {
     }
 
     #[test]
+    fn test_part2_impl() {
+        assert_eq!(part2_impl(&vec![0, 3, 6]).unwrap(), 175594);
+        assert_eq!(part2_impl(&vec![1, 3, 2]).unwrap(), 2578);
+        assert_eq!(part2_impl(&vec![2, 1, 3]).unwrap(), 3544142);
+        assert_eq!(part2_impl(&vec![1, 2, 3]).unwrap(), 261214);
+        assert_eq!(part2_impl(&vec![2, 3, 1]).unwrap(), 6895259);
+        assert_eq!(part2_impl(&vec![3, 2, 1]).unwrap(), 18);
+        assert_eq!(part2_impl(&vec![3, 1, 2]).unwrap(), 362);
+    }
+
+    #[test]
     fn test_part2_solution() {
-        assert_eq!(part2(data_path!("day15_input.txt")).unwrap(), "");
+        assert_eq!(part2(data_path!("day15_input.txt")).unwrap(), "41687");
     }
 }
