@@ -1,5 +1,6 @@
 use super::prelude::*;
-use crate::util::{Rect, Vector2D};
+use crate::util::Rect;
+use crate::vector::{Vector, Vector2D};
 
 const OPEN: u8 = '.' as u8;
 const TREE: u8 = '#' as u8;
@@ -23,7 +24,7 @@ impl Map {
     }
 
     fn traverse(&self, slope: Vector2D<usize>) -> impl Iterator<Item = Tile> + '_ {
-        let start: Vector2D<usize> = Vector2D(0, 0);
+        let start: Vector2D<usize> = Vector([0, 0]);
         std::iter::successors(Some(start), move |&p| {
             let new = self.bounds.wrap_x(p + slope);
             if self.bounds.contains(new) {
@@ -56,7 +57,7 @@ fn read_input(input_path: PathBuf) -> crate::Result<Map> {
         .collect();
     let width = width.expect("didn't find a newline");
     let height = data.len() / width;
-    let rect = Rect(Vector2D(width, height));
+    let rect = Rect(Vector([width, height]));
     Ok(Map {
         tiles: data,
         bounds: rect,
@@ -66,7 +67,7 @@ fn read_input(input_path: PathBuf) -> crate::Result<Map> {
 fn part1(input_path: PathBuf) -> crate::Result<String> {
     let map = read_input(input_path)?;
     let tree_count = map
-        .traverse(Vector2D(3, 1))
+        .traverse(Vector([3, 1]))
         .filter(|t| matches!(t, Tile::Tree))
         .count();
     Ok(tree_count.to_string())
@@ -75,11 +76,11 @@ fn part1(input_path: PathBuf) -> crate::Result<String> {
 fn part2(input_path: PathBuf) -> crate::Result<String> {
     let map = read_input(input_path)?;
     let slopes: Vec<Vector2D<usize>> = vec![
-        Vector2D(1, 1),
-        Vector2D(3, 1),
-        Vector2D(5, 1),
-        Vector2D(7, 1),
-        Vector2D(1, 2),
+        Vector([1, 1]),
+        Vector([3, 1]),
+        Vector([5, 1]),
+        Vector([7, 1]),
+        Vector([1, 2]),
     ];
     let product: usize = slopes
         .into_iter()

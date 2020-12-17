@@ -1,7 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
 use super::prelude::*;
-use crate::util::{self, Vector2D};
+use crate::util;
+use crate::vector::Vector2D;
 
 #[derive(Clone, Copy, Debug)]
 enum Tile {

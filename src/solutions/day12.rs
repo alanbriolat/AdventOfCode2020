@@ -1,20 +1,19 @@
 use std::str::FromStr;
 
 use super::prelude::*;
-use crate::util::{self, Vector2D};
+use crate::util;
+use crate::vector::{Vector, Vector2D};
 
-type Vec2D = Vector2D<i64>;
-
-fn rotate_vector(v: Vec2D, mut steps: i64) -> Vec2D {
+fn rotate_vector(v: Vector2D<i64>, mut steps: i64) -> Vector2D<i64> {
     steps %= 4;
     if steps < 0 {
         steps += 4;
     }
     match steps {
         0 => v,
-        1 => Vector2D(-v.1, v.0),
-        2 => Vector2D(-v.0, -v.1),
-        3 => Vector2D(v.1, -v.0),
+        1 => Vector([-v[1], v[0]]),
+        2 => Vector([-v[0], -v[1]]),
+        3 => Vector([v[1], -v[0]]),
         _ => unimplemented!(),
     }
 }
@@ -28,12 +27,12 @@ enum Direction {
 }
 
 impl Into<Vector2D<i64>> for Direction {
-    fn into(self) -> Vec2D {
+    fn into(self) -> Vector2D<i64> {
         match self {
-            Direction::North => Vector2D(0, -1),
-            Direction::East => Vector2D(1, 0),
-            Direction::South => Vector2D(0, 1),
-            Direction::West => Vector2D(-1, 0),
+            Direction::North => Vector([0, -1]),
+            Direction::East => Vector([1, 0]),
+            Direction::South => Vector([0, 1]),
+            Direction::West => Vector([-1, 0]),
         }
     }
 }
@@ -72,14 +71,14 @@ impl FromStr for Action {
 
 #[derive(Debug)]
 struct Ship {
-    position: Vec2D,
-    waypoint: Vec2D,
+    position: Vector2D<i64>,
+    waypoint: Vector2D<i64>,
 }
 
 impl Ship {
-    fn new(waypoint: Vec2D) -> Self {
+    fn new(waypoint: Vector2D<i64>) -> Self {
         Ship {
-            position: Vector2D(0, 0),
+            position: Vector([0, 0]),
             waypoint,
         }
     }
@@ -87,7 +86,7 @@ impl Ship {
     fn apply_directly(&mut self, action: Action) {
         match action {
             Action::Translate(direction, value) => {
-                let direction: Vec2D = direction.into();
+                let direction: Vector2D<i64> = direction.into();
                 let change = direction * value;
                 self.position = self.position + change;
             }
@@ -107,7 +106,7 @@ impl Ship {
     fn apply_via_waypoint(&mut self, action: Action) {
         match action {
             Action::Translate(direction, value) => {
-                let direction: Vec2D = direction.into();
+                let direction: Vector2D<i64> = direction.into();
                 let change = direction * value;
                 self.waypoint = self.waypoint + change;
             }
@@ -142,7 +141,7 @@ fn part1(input_path: PathBuf) -> crate::Result<String> {
 
 fn part2(input_path: PathBuf) -> crate::Result<String> {
     let actions = read_input(&input_path)?;
-    let mut state = Ship::new(Vector2D(10, -1));
+    let mut state = Ship::new(Vector([10, -1]));
     for action in actions {
         state.apply_via_waypoint(action.clone());
     }
