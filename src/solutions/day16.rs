@@ -1,3 +1,5 @@
+use std::borrow::BorrowMut;
+use std::collections::HashMap;
 use std::ops::{Deref, RangeInclusive};
 use std::str::FromStr;
 
@@ -48,6 +50,23 @@ impl Ruleset {
                 None
             }
         })
+    }
+
+    fn error_rate(&self, ticket: &Ticket) -> u64 {
+        ticket
+            .iter()
+            .filter_map(|&v| {
+                if let None = self.matching_fields_for_value(v).next() {
+                    Some(v as u64)
+                } else {
+                    None
+                }
+            })
+            .sum()
+    }
+
+    fn is_valid(&self, ticket: &Ticket) -> bool {
+        self.error_rate(ticket) == 0
     }
 }
 
@@ -109,25 +128,77 @@ fn part1(input_path: PathBuf) -> crate::Result<String> {
         .nearby_tickets
         .iter()
         // Map each ticket its "scanning error rate"
-        .map(|ticket| {
-            ticket
-                .iter()
-                // Sum the invalid values from a single ticket
-                .filter_map(|&v| {
-                    if let None = input.ruleset.matching_fields_for_value(v).next() {
-                        Some(v as u64)
-                    } else {
-                        None
-                    }
-                })
-                .sum::<u64>()
-        })
+        .map(|ticket| input.ruleset.error_rate(ticket))
         .sum::<u64>();
     Ok(error_rate.to_string())
 }
 
 fn part2(input_path: PathBuf) -> crate::Result<String> {
-    Err("unimplemented".into())
+    let input = read_input(&input_path)?;
+
+    // TODO: this is kinda duplicating some checks, but is it better or worse than extra
+    //  allocations for data that might be thrown away?
+    let valid_tickets: Vec<_> = input
+        .nearby_tickets
+        .iter()
+        .filter(|t| input.ruleset.is_valid(t))
+        .collect();
+
+    // For each field position, mapping of field name to how many tickets have a valid value for that field name
+    let mut match_counts: Vec<HashMap<&str, usize>> = Vec::with_capacity(input.ticket.len());
+    match_counts.resize_with(input.ticket.len(), HashMap::new);
+
+    // Find out how many tickets have valid values for each position/field combination
+    for ticket in valid_tickets.iter() {
+        for (i, &v) in ticket.iter().enumerate() {
+            for field in input.ruleset.matching_fields_for_value(v) {
+                *match_counts[i].entry(field).or_default().borrow_mut() += 1;
+            }
+        }
+    }
+
+    // Find the correct field mapping: a field corresponds to a position if all values in that
+    // position match the rules for that field
+    let mut field_mapping: HashMap<&str, usize> = HashMap::new();
+    while field_mapping.len() < input.ruleset.0.len() {
+        let mut changed = 0_usize;
+        for (i, counts) in match_counts.iter().enumerate() {
+            let candidates: Vec<_> = counts
+                .iter()
+                .filter_map(|(&field, &count)| {
+                    if count == valid_tickets.len() && !field_mapping.contains_key(field) {
+                        Some(field)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            if candidates.len() == 1 {
+                field_mapping.insert(candidates[0], i);
+                changed += 1;
+            }
+        }
+        // Give up if we can't map any more
+        if changed == 0 {
+            break;
+        }
+    }
+
+    // Get just the fields we're interested in (and check we found them all)
+    let departure_fields: Vec<_> = field_mapping
+        .keys()
+        .cloned()
+        .filter(|k| k.starts_with("departure"))
+        .collect();
+    assert_eq!(departure_fields.len(), 6);
+
+    // Get the product of these interesting fields
+    Ok(departure_fields
+        .iter()
+        .map(|k| field_mapping[k])
+        .map(|i| input.ticket[i] as u64)
+        .product::<u64>()
+        .to_string())
 }
 
 pub fn register(runner: &mut crate::Runner) {
@@ -151,6 +222,9 @@ mod tests {
 
     #[test]
     fn test_part2_solution() {
-        assert_eq!(part2(data_path!("day16_input.txt")).unwrap(), "");
+        assert_eq!(
+            part2(data_path!("day16_input.txt")).unwrap(),
+            "3173135507987"
+        );
     }
 }
