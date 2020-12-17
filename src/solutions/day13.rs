@@ -49,6 +49,7 @@ fn part1(input_path: PathBuf) -> crate::Result<String> {
     Ok((bus * delay).to_string())
 }
 
+#[allow(unused_variables)]
 fn part2(input_path: PathBuf) -> crate::Result<String> {
     Err("unimplemented".into())
 }
