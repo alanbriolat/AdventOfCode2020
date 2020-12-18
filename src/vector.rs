@@ -45,11 +45,26 @@ impl<C> VectorInner for [C; 3] {
     }
 }
 
+impl<C> VectorInner for [C; 4] {
+    type Item = C;
+
+    const SIZE: usize = 4;
+
+    fn as_slice(&self) -> &[Self::Item] {
+        self.as_ref()
+    }
+
+    fn as_mut_slice(&mut self) -> &mut [Self::Item] {
+        self.as_mut()
+    }
+}
+
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub struct Vector<T>(pub T);
 
 pub type Vector2D<C> = Vector<[C; 2]>;
 pub type Vector3D<C> = Vector<[C; 3]>;
+pub type Vector4D<C> = Vector<[C; 3]>;
 
 impl<T> ops::Deref for Vector<T> {
     type Target = T;
