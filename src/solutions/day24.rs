@@ -120,6 +120,7 @@ impl FromStr for Directions {
     }
 }
 
+#[derive(Clone)]
 struct Floor {
     black_tiles: HashSet<Vec2D>,
 }
@@ -131,6 +132,16 @@ impl Floor {
         }
     }
 
+    fn initialise(&mut self, input: &[Directions]) {
+        for directions in input {
+            self.flip_tile(directions.apply(Vector([0, 0])));
+        }
+    }
+
+    fn is_black(&self, tile: &Vec2D) -> bool {
+        self.black_tiles.contains(&tile)
+    }
+
     fn flip_tile(&mut self, tile: Vec2D) {
         if !self.black_tiles.remove(&tile) {
             self.black_tiles.insert(tile);
@@ -139,6 +150,49 @@ impl Floor {
 
     fn num_black_tiles(&self) -> usize {
         self.black_tiles.len()
+    }
+
+    /// Iterate over adjacent tiles in the 6 hexagonal grid directions.
+    fn iter_adjacent_6(&self, tile: Vec2D) -> impl Iterator<Item = Vec2D> + '_ {
+        Direction::values().map(move |d| tile + d)
+    }
+
+    fn num_adjacent_black_tiles(&self, tile: Vec2D) -> usize {
+        self.iter_adjacent_6(tile)
+            .filter(|t| self.black_tiles.contains(t))
+            .count()
+    }
+
+    /// Iterate over all tiles that need to be calculated for the next step in the hexagonal
+    /// cellular automata.
+    ///
+    /// The only tiles that might flip are black tiles and those adjacent to black tiles, because it
+    /// requires 2 or more adjacent black tiles for any tile to flip, or for the tile itself to be
+    /// black.
+    fn iter_relevant_tiles(&self) -> impl Iterator<Item = Vec2D> + '_ {
+        let mut seen: HashSet<Vec2D> = HashSet::new();
+        self.black_tiles
+            .iter()
+            .copied()
+            .flat_map(move |tile| std::iter::once(tile).chain(self.iter_adjacent_6(tile)))
+            // De-duplicate tiles to avoid revisiting them
+            .filter(move |tile| seen.insert(*tile))
+    }
+
+    /// Apply hexagonal cellular automata step.
+    fn next(&mut self) -> &Self {
+        let mut new = self.clone();
+        for tile in self.iter_relevant_tiles() {
+            let is_black = self.is_black(&tile);
+            let adjacent_black = self.num_adjacent_black_tiles(tile);
+            match (is_black, adjacent_black) {
+                (true, 0) | (true, 3..=6) => new.flip_tile(tile),
+                (false, 2) => new.flip_tile(tile),
+                _ => {}
+            };
+        }
+        *self = new;
+        self
     }
 }
 
@@ -151,14 +205,18 @@ fn read_input(input_path: &PathBuf) -> crate::Result<Vec<Directions>> {
 fn part1(input_path: PathBuf) -> crate::Result<String> {
     let input = read_input(&input_path)?;
     let mut floor = Floor::new();
-    for directions in input {
-        floor.flip_tile(directions.apply(Vector([0, 0])));
-    }
+    floor.initialise(&input);
     Ok(floor.num_black_tiles().to_string())
 }
 
 fn part2(input_path: PathBuf) -> crate::Result<String> {
-    Err("unimplemented".into())
+    let input = read_input(&input_path)?;
+    let mut floor = Floor::new();
+    floor.initialise(&input);
+    for _ in 0..100 {
+        floor.next();
+    }
+    Ok(floor.num_black_tiles().to_string())
 }
 
 pub fn register(runner: &mut crate::Runner) {
@@ -192,7 +250,65 @@ mod tests {
     }
 
     #[test]
+    fn test_floor_next_example1() {
+        let input = read_input(&data_path!("day24_example1.txt")).unwrap();
+        let mut floor = Floor::new();
+        floor.initialise(&input);
+        assert_eq!(floor.next().num_black_tiles(), 15);
+        assert_eq!(floor.next().num_black_tiles(), 12);
+        assert_eq!(floor.next().num_black_tiles(), 25);
+        assert_eq!(floor.next().num_black_tiles(), 14);
+        assert_eq!(floor.next().num_black_tiles(), 23);
+        assert_eq!(floor.next().num_black_tiles(), 28);
+        assert_eq!(floor.next().num_black_tiles(), 41);
+        assert_eq!(floor.next().num_black_tiles(), 37);
+        assert_eq!(floor.next().num_black_tiles(), 49);
+        assert_eq!(floor.next().num_black_tiles(), 37);
+        for _ in 0..10 {
+            floor.next();
+        }
+        assert_eq!(floor.num_black_tiles(), 132);
+        for _ in 0..10 {
+            floor.next();
+        }
+        assert_eq!(floor.num_black_tiles(), 259);
+        for _ in 0..10 {
+            floor.next();
+        }
+        assert_eq!(floor.num_black_tiles(), 406);
+        for _ in 0..10 {
+            floor.next();
+        }
+        assert_eq!(floor.num_black_tiles(), 566);
+        for _ in 0..10 {
+            floor.next();
+        }
+        assert_eq!(floor.num_black_tiles(), 788);
+        for _ in 0..10 {
+            floor.next();
+        }
+        assert_eq!(floor.num_black_tiles(), 1106);
+        for _ in 0..10 {
+            floor.next();
+        }
+        assert_eq!(floor.num_black_tiles(), 1373);
+        for _ in 0..10 {
+            floor.next();
+        }
+        assert_eq!(floor.num_black_tiles(), 1844);
+        for _ in 0..10 {
+            floor.next();
+        }
+        assert_eq!(floor.num_black_tiles(), 2208);
+    }
+
+    #[test]
+    fn test_part2_example1() {
+        assert_eq!(part2(data_path!("day24_example1.txt")).unwrap(), "2208");
+    }
+
+    #[test]
     fn test_part2_solution() {
-        assert_eq!(part2(data_path!("day24_input.txt")).unwrap(), "");
+        assert_eq!(part2(data_path!("day24_input.txt")).unwrap(), "3737");
     }
 }
